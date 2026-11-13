@@ -36,7 +36,7 @@ async function tryAdd(result: { current: ReturnType<typeof useTasks> }, title: s
 
 describe('useTasks: offline task management', () => {
   it('creates tasks locally when offline, without calling the API', async () => {
-    const { result } = renderHook(() => useTasks(false))
+    const { result } = await renderHook(() => useTasks(false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(await tryAdd(result, '  Buy milk  ')).toBeUndefined()
@@ -47,7 +47,7 @@ describe('useTasks: offline task management', () => {
   })
 
   it('rejects an empty title', async () => {
-    const { result } = renderHook(() => useTasks(false))
+    const { result } = await renderHook(() => useTasks(false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect((await tryAdd(result, '   '))?.message).toBe('Please enter a task title.')
@@ -65,31 +65,35 @@ describe('useTasks: saved data', () => {
         meta: { deletedRemoteIds: [], completionOverrides: {} },
       }),
     )
-    const { result } = renderHook(() => useTasks(false))
+    const { result } = await renderHook(() => useTasks(false))
     await waitFor(() => expect(result.current.tasks).toHaveLength(1))
     expect(result.current.tasks[0].title).toBe('Saved offline')
   })
 
   it('saves changes to the device so they survive an app restart', async () => {
-    const first = renderHook(() => useTasks(false))
+    const first = await renderHook(() => useTasks(false))
     await waitFor(() => expect(first.result.current.loading).toBe(false))
     await tryAdd(first.result, 'Survive restart')
     await waitFor(async () => expect(await AsyncStorage.getItem(STORAGE_KEY)).toContain('Survive restart'))
-    first.unmount()
+    await first.unmount()
 
-    const second = renderHook(() => useTasks(false))
+    const second = await renderHook(() => useTasks(false))
     await waitFor(() => expect(second.result.current.tasks.map((t) => t.title)).toEqual(['Survive restart']))
   })
 })
 
 describe('useTasks: refreshing', () => {
   it('keeps local tasks, completions and deletions when refreshing, with no duplicates', async () => {
-    const { result } = renderHook(() => useTasks(true))
+    const { result } = await renderHook(() => useTasks(true))
     await waitFor(() => expect(result.current.tasks).toHaveLength(2))
 
     await tryAdd(result, 'My own task')
-    act(() => result.current.toggleTask('remote-1'))
-    act(() => result.current.deleteTask('remote-2'))
+    await act(async () => {
+      result.current.toggleTask('remote-1')
+    })
+    await act(async () => {
+      result.current.deleteTask('remote-2')
+    })
 
     await act(async () => {
       await result.current.refresh() // the API still returns todo 1 (not completed) and todo 2
@@ -107,7 +111,7 @@ describe('useTasks: refreshing', () => {
 describe('useTasks: API failures', () => {
   it('shows an error, then recovers when the user retries', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Server error (500). Please try again.'))
-    const { result } = renderHook(() => useTasks(true))
+    const { result } = await renderHook(() => useTasks(true))
     await waitFor(() => expect(result.current.error).toBe('Server error (500). Please try again.'))
     expect(result.current.tasks).toHaveLength(0)
 
@@ -119,7 +123,7 @@ describe('useTasks: API failures', () => {
   })
 
   it('does not add a task when the API call fails, and reports why', async () => {
-    const { result } = renderHook(() => useTasks(true))
+    const { result } = await renderHook(() => useTasks(true))
     await waitFor(() => expect(result.current.tasks).toHaveLength(2))
     mockCreate.mockRejectedValueOnce(new Error('Cannot reach the server. Check your connection.'))
 
@@ -128,7 +132,7 @@ describe('useTasks: API failures', () => {
   })
 
   it('ignores a second add while the first is still saving', async () => {
-    const { result } = renderHook(() => useTasks(true))
+    const { result } = await renderHook(() => useTasks(true))
     await waitFor(() => expect(result.current.tasks).toHaveLength(2))
 
     let finish!: () => void
