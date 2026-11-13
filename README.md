@@ -1,3 +1,10 @@
+# Justnaik Technical Assessment
+
+| Exercise | Folder | Docs |
+|---|---|---|
+| Full Stack Location Management | `backend/` + `frontend/` | Setup and usage below |
+| React Native Task Management | `mobile/` | `mobile/README.md` |
+
 # Location Manager (Full Stack Technical Assessment)
 
 A web app where each user signs up, saves locations (name, latitude, longitude) and sees them on an interactive map. Locations can be added one at a time or imported from a ZIP file. Every user only ever sees and changes their own data.
